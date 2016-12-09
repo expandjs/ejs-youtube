@@ -1,0 +1,25 @@
+{
+  "name": "ejs-youtube",
+  "description": "A video search app built upon expand.js",
+  "version": "1.0.0",
+  "license": "BSD-3-Clause",
+  "main": "ejs-youtube.html",
+  "homepage": "https://expandjs.com/showcase/youtube",
+
+  "authors": [
+    "Giuliano Rullo <g.rullo@expandjs.com>",
+    "Maurizio Stefàno <m.stefano@expandjs.com>",
+    "Robert Manolea <r.manolea@expandjs.com>"
+  ],
+
+  "keywords": [
+    "expandjs",
+    "web app",
+    "web components"
+  ],
+
+  "dependencies": {
+    "mat-elements": "ExpandJS/mat-elements",
+    "xp-elements": "ExpandJS/xp-elements"
+  }
+}

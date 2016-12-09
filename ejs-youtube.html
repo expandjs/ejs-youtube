@@ -1,0 +1,600 @@
+<!--
+@license
+Copyright (c) 2015 The expand.js authors. All rights reserved.
+This code may only be used under the BSD style license found at https://expandjs.github.io/LICENSE.txt
+The complete set of authors may be found at https://expandjs.github.io/AUTHORS.txt
+The complete set of contributors may be found at https://expandjs.github.io/CONTRIBUTORS.txt
+-->
+
+<!--
+A video search app, built with expand.js and its Material Design components.
+
+@element ejs-youtube
+@description A video search app, built with expand.js and its Material Design components.
+@keywords material design, expandjs, web components
+
+@homepage https://expandjs.com/showcase/youtube
+@repository https://github.com/expandjs/ejs-youtube
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/expandjs/expandjs.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../../bower_components/mat-elements/mat-drawer-panel.html">
+<link rel="import" href="../../bower_components/mat-elements/mat-header-panel.html">
+<link rel="import" href="../../bower_components/mat-elements/mat-icon-button.html">
+<link rel="import" href="../../bower_components/mat-elements/mat-ink.html">
+<link rel="import" href="../../bower_components/mat-elements/mat-item.html">
+<link rel="import" href="../../bower_components/mat-elements/mat-list.html">
+<link rel="import" href="../../bower_components/mat-elements/mat-pages.html">
+<link rel="import" href="../../bower_components/mat-elements/mat-shell-behavior.html">
+<link rel="import" href="../../bower_components/mat-elements/mat-shell-styles.html">
+<link rel="import" href="../../bower_components/mat-elements/mat-spinner.html">
+<link rel="import" href="../../bower_components/mat-elements/mat-subheader.html">
+<link rel="import" href="../../bower_components/mat-elements/mat-tabs.html">
+<link rel="import" href="../../bower_components/mat-elements/mat-text-field.html">
+<link rel="import" href="../../bower_components/xp-elements/xp-iconset.html">
+<link rel="import" href="../../bower_components/xp-elements/xp-request.html">
+
+<dom-module id="ejs-youtube">
+
+    <template strip-whitespace>
+
+        <style include="mat-shell-styles">
+
+            :host {
+                --mat-focused-color: #FFFFFF;
+            }
+
+            /* MAIN */
+
+            :host([narrow][selected]) .main {
+                max-width: 512px;
+            }
+
+            :host .main .header .wrapper {
+                @apply --layout-flex;
+                position: relative;
+            }
+
+            :host .main .header .heading {
+                @apply --layout-horizontal;
+                @apply --layout-center;
+                @apply --layout-fit;
+                opacity: 1;
+                transition: opacity 0.4s cubic-bezier(0.55, 0, 0.01, 1);
+            }
+
+            :host .main .header .heading:not([showed]) {
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.2s cubic-bezier(0.55, 0, 0.01, 1);
+            }
+
+            :host .main .header #back {
+                margin-left: -12px;
+            }
+
+            :host .main .header #search {
+                @apply --layout-flex;
+                display: block;
+                margin: 8px 12px -8px 12px;
+                width: auto;
+            }
+
+            :host .main .header .icon {
+                margin-right: 16px;
+            }
+
+            :host .main .header .label {
+                @apply --layout-flex;
+            }
+
+            :host .main .item [slot="primary"] {
+                border-radius: 0;
+                height: 45px;
+                margin: 4px 0 4px 16px;
+                width: 80px;
+            }
+
+            /* DRAWER */
+
+            :host(:not([narrow])) .drawer {
+                width: calc(100vw - 512px);
+            }
+
+            :host .drawer .header .top {
+                @apply --layout-horizontal;
+                @apply --layout-center;
+                width: 100%;
+            }
+
+            :host .drawer .header #close {
+                margin-left: -12px;
+            }
+
+            :host .drawer .header .label {
+                @apply --layout-flex;
+                @apply --mat-font-title;
+                font-weight: 400;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            :host .drawer .header [slot="extended"] {
+                @apply --layout-horizontal;
+                @apply --layout-center;
+                @apply --layout-justified;
+                @apply --mat-font-button;
+                height: 48px;
+                padding-right: 8px
+            }
+
+            :host .drawer .header .channel,
+            :host .drawer .header .date {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            :host .drawer .video {
+                background: hsla(0, 0%, 11%, 1); /* backdrop */
+                padding-bottom: 30px; /* controls */
+                padding-top: 56.25%; /* 16:9 */
+                position: relative;
+            }
+
+            :host .drawer iframe {
+                border: none;
+                box-sizing: border-box;
+                height: 100%;
+                left: 0;
+                position: absolute;
+                top: 0;
+                width: 100%;
+            }
+
+            :host .drawer .description .container {
+                margin-top: -16px;
+                padding: 16px 24px;
+            }
+
+            /* TABLET */
+
+            @media (max-width: 960px) {
+
+                :host .drawer .description .container {
+                    padding: 16px;
+                }
+            }
+
+        </style>
+
+        <!-- ICONS -->
+        <xp-iconset name="yt">
+            <svg>
+                <defs>
+                    <g id="back"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></g>
+                    <g id="clear"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></g>
+                    <g id="search"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></g>
+                    <g id="favorite"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></g>
+                    <g id="favorite-border"><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3zm-4.4 15.55l-.1.1-.1-.1C7.14 14.24 4 11.39 4 8.5 4 6.5 5.5 5 7.5 5c1.54 0 3.04.99 3.57 2.36h1.87C13.46 5.99 14.96 5 16.5 5c2 0 3.5 1.5 3.5 3.5 0 2.89-3.14 5.74-7.9 10.05z"/></g>
+                </defs>
+            </svg>
+        </xp-iconset>
+
+        <!-- REQUEST -->
+        <xp-request id="request" parser="json" url="[[_computeSearchUrl(query)]]" on-xp-request-data="_handleData"></xp-request>
+
+        <!-- DRAWER PANEL -->
+        <mat-drawer-panel id="panel" break-point="1184" narrow="{{narrow}}" showed="[[selected]]" on-xp-hide="_handleHide" right>
+
+            <!-- HEADER PANEL -->
+            <mat-header-panel class="main" mode="fixed">
+
+                <!-- HEADER -->
+                <mat-header slot="header" background="red">
+
+                    <!-- WRAPPER -->
+                    <div class="wrapper">
+
+                        <!-- SEARCH -->
+                        <div class="search heading" showed$="[[focused]]">
+                            <mat-icon-button id="back" icon="yt:back"></mat-icon-button>
+                            <mat-text-field id="search" focused="{{focused}}" label="Search video" type="search" on-keypress="_handleKeypress" float-disabled></mat-text-field>
+                        </div>
+
+                        <!-- HEADING -->
+                        <div class="default heading" showed$="[[!focused]]" on-click="_handleSearch">
+                            <span class="label">Youtube Search</span>
+                            <mat-icon-button icon="yt:search"></mat-icon-button>
+                        </div>
+
+                    </div>
+
+                    <!-- TABS -->
+                    <mat-tabs slot="extended" id="tabs" selected-default="0" target="pages">
+                        <mat-tab label="all"></mat-tab>
+                        <mat-tab label="favorites"></mat-tab>
+                    </mat-tabs>
+
+                </mat-header>
+
+                <!-- PAGES -->
+                <mat-pages id="pages">
+
+                    <!-- HOME -->
+                    <mat-page name="home">
+
+                        <!-- LIST -->
+                        <mat-list on-xp-activate="_handleActivate">
+                            <mat-subheader label="[[_computeSubheader(query)]]"></mat-subheader>
+                            <template is="dom-repeat" items="[[videos]]" as="video">
+                                <mat-item active="[[_isCurrent(video, current)]]" data="[[video]]" label="[[_computeVideoTitle(video)]]">
+                                    <img slot="primary" src$="[[_computeVideoThumbnail(video)]]"/>
+                                    <span>[[_computeVideoDescription(video)]]</span>
+                                    <mat-icon-button slot="secondary" active="[[_isFavorite(video, favorites.length)]]" active-color="red" active-icon="yt:favorite" icon="yt:favorite-border"></mat-icon-button>
+                                </mat-item>
+                            </template>
+                        </mat-list>
+
+                        <!-- SPINNER -->
+                        <mat-spinner showed="[[spinning]]" auto-center></mat-spinner>
+
+                    </mat-page>
+
+                    <!-- FAVORITES -->
+                    <mat-page name="favorites">
+
+                        <!-- LIST -->
+                        <mat-list on-xp-activate="_handleActivate">
+                            <mat-subheader label="Playlist"></mat-subheader>
+                            <template is="dom-repeat" items="[[favorites]]" as="video">
+                                <mat-item active="[[_isCurrent(video, current)]]" data="[[video]]" label="[[_computeVideoTitle(video)]]">
+                                    <img slot="primary" src$="[[_computeVideoThumbnail(video)]]"/>
+                                    <span>[[_computeVideoDescription(video)]]</span>
+                                    <mat-icon-button slot="secondary" active="[[_isFavorite(video, favorites.length)]]" active-color="red" active-icon="yt:favorite" icon="yt:favorite-border"></mat-icon-button>
+                                </mat-item>
+                            </template>
+                        </mat-list>
+
+                    </mat-page>
+
+                </mat-pages>
+
+            </mat-header-panel>
+
+            <!-- DRAWER -->
+            <mat-drawer slot="drawer" background="grey-200">
+
+                <!-- HEADER -->
+                <mat-header background="red-600">
+
+                    <!-- TOP -->
+                    <div class="top">
+                        <mat-icon-button id="close" action="hide" hidden$="[[!narrow]]" icon="yt:back" target="panel"></mat-icon-button>
+                        <span class="label">[[_computeVideoTitle(current)]]</span>
+                        <mat-icon-button id="favorite" active="[[_isFavorite(current, favorites.length)]]" active-icon="yt:favorite" data="[[current]]" icon="yt:favorite-border" on-xp-activate="_handleFavorite"></mat-icon-button>
+                    </div>
+
+                    <!-- INFO -->
+                    <div slot="extended">
+                        <mat-ink class="channel" opacity="secondary"><a href$="[[_computeChannelUrl(current)]]" target="_blank">[[_computeChannelTitle(current)]]</a></mat-ink>
+                        <mat-ink class="date" opacity="secondary"><span>[[_computeVideoDate(current)]]</span></mat-ink>
+                    </div>
+
+                </mat-header>
+
+                <!-- VIDEO -->
+                <div class="video">
+                    <mat-spinner showed auto-center></mat-spinner>
+                    <template is="dom-if" if="[[selected]]" restamp><iframe src="[[_computeVideoUrl(current)]]" allowfullscreen></iframe></template>
+                </div>
+
+                <!-- DESCRIPTION -->
+                <div class="description">
+                    <mat-subheader label="Description"></mat-subheader>
+                    <div class="container">[[_computeVideoDescription(current)]]</div>
+                </div>
+
+            </mat-drawer>
+
+        </mat-drawer-panel>
+
+    </template>
+
+    <script>
+        Polymer({
+
+            // ELEMENT
+            is: 'ejs-youtube',
+
+            // BEHAVIORS
+            behaviors: [
+                Polymer.MATShellBehavior
+            ],
+
+            /*********************************************************************/
+
+            // PROPERTIES
+            properties: {
+
+                /**
+                 * The current video.
+                 *
+                 * @attribute current
+                 * @type Object
+                 * @readonly
+                 */
+                current: {
+                    readOnly: true,
+                    type: Object
+                },
+
+                /**
+                 * The list of favorite videos.
+                 *
+                 * @attribute favorites
+                 * @type Array
+                 * @readonly
+                 */
+                favorites: {
+                    readOnly: true,
+                    type: Array,
+                    value() { return []; }
+                },
+
+                /**
+                 * If set to true, the header input is focused.
+                 *
+                 * @attribute focused
+                 * @type boolean
+                 * @readonly
+                 */
+                focused: {
+                    observer: '_focusedChanged',
+                    type: Boolean
+                },
+
+                /**
+                 * If set to true, the drawer is an overlay, because the viewport is smaller than its breakpoint.
+                 *
+                 * @attribute narrow
+                 * @type boolean
+                 * @readonly
+                 */
+                narrow: {
+                    reflectToAttribute: true,
+                    type: Boolean
+                },
+
+                /**
+                 * The query used to search for videos.
+                 *
+                 * @attribute query
+                 * @type string
+                 * @default ""
+                 */
+                query: {
+                    observer: '_queryChanged',
+                    type: String,
+                    value: ''
+                },
+
+                /**
+                 * If set to true, a video is selected.
+                 *
+                 * @attribute selected
+                 * @type boolean
+                 * @default false
+                 * @readonly
+                 */
+                selected: {
+                    computed: '_isCurrent(current, current)',
+                    reflectToAttribute: true,
+                    type: Boolean,
+                    value: false
+                },
+
+                /**
+                 * If set to true, a search request is running.
+                 *
+                 * @attribute spinning
+                 * @type boolean
+                 * @default true
+                 * @readonly
+                 */
+                spinning: {
+                    readOnly: true,
+                    type: Boolean,
+                    value: true
+                },
+
+                /**
+                 * The list of found videos.
+                 *
+                 * @attribute videos
+                 * @type Array
+                 * @readonly
+                 */
+                videos: {
+                    readOnly: true,
+                    type: Array,
+                    value() { return []; }
+                }
+            },
+
+            /*********************************************************************/
+
+            // COMPUTER
+            _computeChannelTitle(video) {
+                return video ? video.snippet.channelTitle : ``;
+            },
+
+            // COMPUTER
+            _computeChannelUrl(video) {
+                return video ? `https://www.youtube.com/channel/${video.snippet.channelId}` : ``;
+            },
+
+            // COMPUTER
+            _computeSearchUrl(query) {
+                return `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=25&key=AIzaSyCjz4T-vETD4jk8t8JlaqIBH3st2uWtcBA${query ? `&q=${query}` : ``}`;
+            },
+
+            // COMPUTER
+            _computeSubheader(query) {
+                return query ? `Results for: ${query}` : `Featured`;
+            },
+
+            // COMPUTER
+            _computeVideoDate(video) {
+                return video ? new Date(video.snippet.publishedAt).toDateString().replace(/.*? /, ``).replace(/(.*) /, `$1, `) : ``;
+            },
+
+            // COMPUTER
+            _computeVideoDescription(video) {
+                return video ? video.snippet.description : ``;
+            },
+
+            // COMPUTER
+            _computeVideoTitle(video) {
+                return video ? video.snippet.title : ``;
+            },
+
+            // COMPUTER
+            _computeVideoThumbnail(video) {
+                return video ? video.snippet.thumbnails.default.url : ``;
+            },
+
+            // COMPUTER
+            _computeVideoUrl(video) {
+                return video ? `https://www.youtube.com/embed/${video.id.videoId}?&autoplay=1rel=0&showinfo=0` : ``;
+            },
+
+            // COMPUTER
+            _isCurrent(video, current) {
+                return video && current ? video.id.videoId === current.id.videoId : false;
+            },
+
+            // COMPUTER
+            _isFavorite(video) {
+                return video && this.favorites ? this.favorites.some(favorite => video.id.videoId === favorite.id.videoId) : false;
+            },
+
+            /*********************************************************************/
+
+            // OBSERVER
+            _focusedChanged(post) {
+
+                // Ensuring query
+                if (!post) { this.$.search.value = this.query; }
+            },
+
+            // OBSERVER
+            _queryChanged() {
+
+                // Selecting tab
+                this.$.tabs.select(0);
+
+                // Submitting search
+                this.$.request.submit();
+
+                // Resetting videos
+                if (this.isAttached && this.videos) { this.splice('videos', 0, this.videos.length); }
+
+                // Ensuring spinning
+                if (this.isAttached) { this.ensure('spinning', true); }
+            },
+
+            /*********************************************************************/
+
+            // LISTENER
+            attached() {
+
+                // Let
+                let spinner = document.getElementById('spinner');
+
+                // Hiding spinner
+                if (spinner) { spinner.style.display = 'none'; }
+            },
+
+            // LISTENER
+            ready() {
+
+                // Cycling storage
+                Object.keys(window.localStorage || {}).forEach(key => {
+
+                    // Checking
+                    if (!window.localStorage[key].match("\"kind\":\"youtube#searchResult\"")) { return; }
+
+                    // Pushing favorite
+                    this.push('favorites', JSON.parse(window.localStorage[key]));
+                });
+            },
+
+            /*********************************************************************/
+
+            // HANDLER
+            _handleActivate(event) {
+
+                // Handling
+                if (event.detail.isSecondary) { return this._handleFavorite(event); }
+
+                // Ensuring current
+                this.ensure('current', !event.detail.isActive ? event.detail.data : null);
+            },
+
+            // HANDLER
+            _handleHide() {
+
+                // Resetting current
+                this.ensure('current', null);
+            },
+
+            // HANDLER
+            _handleData(event) {
+
+                // Splicing videos
+                this.splice('videos', this.videos ? this.videos.length : 0, 0, ...event.detail.data.items);
+
+                // Ensuring spinning
+                this.ensure('spinning', false);
+            },
+
+            // HANDLER
+            _handleFavorite(event) {
+
+                // Let
+                let firer   = this.firer(event),
+                    index   = this.favorites.findIndex(video => video.id.videoId === firer.data.id.videoId),
+                    store   = () => window.localStorage.setItem(firer.data.id.videoId, JSON.stringify(firer.data)),
+                    unstore = () => window.localStorage.removeItem(firer.data.id.videoId);
+
+                // Toggling favorite
+                if (index < 0) { this.push('favorites', firer.data); } else { this.splice('favorites', index, 1); }
+
+                // Updating storage
+                if (window.localStorage && index < 0) { this.wait(index >= 0 ? unstore : store); }
+            },
+
+            // HANDLER
+            _handleKeypress(event) {
+
+                // Ensuring query
+                if (event.keyCode === 13) { this.ensure('query', this.$.search.input.value); }
+
+                // Blurring search
+                if (event.keyCode === 13) { this.$.search.blur(); }
+            },
+
+            // HANDLER
+            _handleSearch(event) {
+
+                // Selecting search
+                if (!event.button) { this.$.search.select(); }
+            }
+        });
+    </script>
+
+</dom-module>
