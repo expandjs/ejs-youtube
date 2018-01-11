@@ -1,7 +1,7 @@
 {
   "name": "ejs-youtube",
   "description": "A video search app built upon expand.js",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "license": "BSD-3-Clause",
   "main": "ejs-youtube.html",
   "homepage": "https://expandjs.com/examples/youtube",
